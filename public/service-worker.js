@@ -91,3 +91,63 @@ self.addEventListener("fetch", function (evt) {
         return;
     }
 });
+
+const checkOfflineTransactions = () => {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("offlineDb", 1);
+
+        request.onupgradeneeded = function (e) {
+            const db = request.result;
+            db.createObjectStore("offlineTransactions", { keyPath: "_id", autoIncrement: true });
+        };
+
+        request.onsuccess = function (e) {
+            let db = request.result;
+            let tx = db.transaction("offlineTransactions", "readwrite");
+            let store = tx.objectStore("offlineTransactions");
+            let count = store.count();
+            count.onsuccess = function (e) {
+                if (count.result > 0) {
+                    console.log("Db contains offline transactions");
+                    resolve(db);
+                } else {
+                    reject("offlineTransactions is empty");
+                }
+            }
+        }
+    });
+}
+
+self.addEventListener('sync', function (evt) {
+    if (evt.tag === "post-offline-transactions") {
+        evt.waitUntil(
+            checkOfflineTransactions()
+                .then((result) => {
+                    updateOfflineTransactions(result)
+                        .then((transactions) => {
+                            console.log(transactions);
+                            fetch("/api/transaction/bulk", {
+                                method: "POST",
+                                body: JSON.stringify(transactions),
+                                headers: {
+                                    Accept: "application/json, text/plain, */*",
+                                    "Content-Type": "application/json"
+                                }
+                            })
+                                .then((response) => {
+                                    console.log(response);
+                                })
+                                .catch((err) => {
+                                    console.error(`Problem with posting to MongoDB ${err}`);
+                                })
+                        })
+                        .catch((err) => {
+                            console.error(`Problem with getting offlineTransactions from indexedDb ${err}`);
+                        })
+                })
+                .catch((err) => {
+                    console.error(`Problem with checking offlineTransactions ${err}`);
+                })
+        );
+    }
+});
