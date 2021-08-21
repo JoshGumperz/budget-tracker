@@ -151,3 +151,38 @@ self.addEventListener('sync', function (evt) {
         );
     }
 });
+
+const updateOfflineTransactions = (db) => {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("offlineTransactions", "readwrite");
+        const store = tx.objectStore("offlineTransactions");
+        const transactions = [];
+
+        // Opens a Cursor request and iterates over the documents.
+        const storeCurserRequest = store.openCursor();
+        storeCurserRequest.onsuccess = function (e) {
+            const cursor = e.target.result;
+            let transaction;
+            if (cursor) {
+                transaction = {
+                    name: cursor.value.name,
+                    value: cursor.value.value,
+                    date: cursor.value.date
+                };
+                transactions.push(transaction);
+                cursor.delete();
+                cursor.continue();
+            } else {
+                resolve(transactions);
+            }
+        };
+
+        storeCurserRequest.onerror = function (e) {
+            reject("Unable to get offlineTransactions");
+        };
+
+        tx.oncomplete = function () {
+            db.close();
+        };
+    });
+}
