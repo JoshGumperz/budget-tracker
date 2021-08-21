@@ -43,5 +43,25 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
   <script src="index.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js")
+        .then(reg => {
+          console.log("We found your service worker file!", reg);
+          return navigator.serviceWorker.ready;
+        })
+        .then((reg) => {
+          return reg.sync.register("post-offline-transactions");
+        })
+        .then(() => {
+          console.log("Sync registered");
+        })
+        .catch(() => {
+          console.log("Sync failed");
+        })
+    });
+  }
+  </script>
 </body>
 </html>

@@ -38,7 +38,7 @@ const config = {
             display: "standalone",
             icons: [
                 {
-                    src: path.resolve("./public/icons/icon_192x192.png"),
+                    src: path.resolve("./public/icons/icon-192x192.png"),
                     size: [192, 512]
                 }
             ]
